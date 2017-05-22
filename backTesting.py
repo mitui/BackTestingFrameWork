@@ -28,66 +28,6 @@ class ExcelWriter(object):
     def __del__(self):  
         self.excel_file.save(self.file_name)
 
-##########################################################################
-class TradeData(object):
-    """成交数据类"""
-
-    #----------------------------------------------------------------------
-    def __init__(self):
-        """Constructor"""
-        super(TradeData, self).__init__()
-        
-        # 代码编号相关
-        self.symbol = EMPTY_STRING              # 合约代码
-        self.exchange = EMPTY_STRING            # 交易所代码
-        self.vtSymbol = EMPTY_STRING            # 合约在vt系统中的唯一代码，通常是 合约代码.交易所代码
-        
-        self.tradeID = EMPTY_STRING             # 成交编号
-        self.vtTradeID = EMPTY_STRING           # 成交在vt系统中的唯一编号，通常是 Gateway名.成交编号
-        
-        self.orderID = EMPTY_STRING             # 订单编号
-        self.vtOrderID = EMPTY_STRING           # 订单在vt系统中的唯一编号，通常是 Gateway名.订单编号
-        
-        # 成交相关
-        self.direction = EMPTY_UNICODE          # 成交方向
-        self.offset = EMPTY_UNICODE             # 成交开平仓
-        self.price = EMPTY_FLOAT                # 成交价格
-        self.volume = EMPTY_INT                 # 成交数量
-        self.tradeTime = EMPTY_STRING           # 成交时间
-   
-
-########################################################################
-class OrderData(object):
-    """订单数据类"""
-
-    #----------------------------------------------------------------------
-    def __init__(self):
-        """Constructor"""
-        super(OrderData, self).__init__()
-        
-        # 代码编号相关
-        self.symbol = EMPTY_STRING              # 合约代码
-        self.exchange = EMPTY_STRING            # 交易所代码
-        self.vtSymbol = EMPTY_STRING            # 合约在vt系统中的唯一代码，通常是 合约代码.交易所代码
-        
-        self.orderID = EMPTY_STRING             # 订单编号
-        self.vtOrderID = EMPTY_STRING           # 订单在vt系统中的唯一编号，通常是 Gateway名.订单编号
-        
-        # 报单相关
-        self.direction = EMPTY_UNICODE          # 报单方向
-        self.offset = EMPTY_UNICODE             # 报单开平仓
-        self.price = EMPTY_FLOAT                # 报单价格
-        self.totalVolume = EMPTY_INT            # 报单总数量
-        self.tradedVolume = EMPTY_INT           # 报单成交数量
-        self.status = EMPTY_UNICODE             # 报单状态
-        
-        self.orderTime = EMPTY_STRING           # 发单时间
-        self.cancelTime = EMPTY_STRING          # 撤单时间
-        
-        # CTP/LTS相关
-        self.frontID = EMPTY_INT                # 前置机编号
-        self.sessionID = EMPTY_INT              # 连接编号
-		
 
 ########################################################################
 class BacktestingEngine(object):
@@ -144,10 +84,6 @@ class BacktestingEngine(object):
         self.limitOrderDict = OrderedDict()         # 限价单字典
         self.workingLimitOrderDict = OrderedDict()  # 活动限价单字典，用于进行撮合用
         self.limitOrderCount = 0                    # 限价单编号
-        
-        self.MarketOrderDict = OrderedDict()         # 限价单字典
-        self.workingMarketOrderDict = OrderedDict()  # 活动限价单字典，用于进行撮合用
-        self.MarketOrderCount = 0                    # 限价单编号
         
         self.tradeCount = 0             # 成交编号
         self.tradeDict = OrderedDict()  # 成交字典
@@ -296,8 +232,8 @@ class BacktestingEngine(object):
         """新的K线"""
         self.bar = bar
         self.dt = bar.datetime
-        self.crossLimitOrder()      # 先撮合限价单
-        self.crossStopOrder()       # 再撮合停止单
+#        self.crossLimitOrder()      # 先撮合限价单
+#        self.crossStopOrder()       # 再撮合停止单
         self.strategy.onBar(bar)    # 推送K线到策略中
         self.crossLimitOrder()      # 撮合当前K线上的限价单
     
