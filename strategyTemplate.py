@@ -6,9 +6,7 @@
 
 import time
 from datetime import datetime
-import pymysql
-from ctaBase import *
-from vtConstant import *
+from constants import *
 
 class LoggingToFile():
     def __init__(self):
@@ -28,7 +26,7 @@ class LoggingToFile():
 logging = LoggingToFile()
 
 ########################################################################
-class CtaTemplate(object):
+class StrategyTemplate(object):
     """CTA策略模板"""
     
     # 策略类的名称和作者

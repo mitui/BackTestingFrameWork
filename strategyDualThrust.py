@@ -1,10 +1,10 @@
 # encoding: UTF-8
 
 import numpy as np
-from ctaBase import *
-from ctaTemplate import CtaTemplate
-from ctaTemplate import logging
+from strategyTemplate import StrategyTemplate
 from datetime import datetime
+
+from constants import *
 
 ########################################################################
 
@@ -41,21 +41,21 @@ class HistoryRecordGetter():
     def getRecorderVal(self, section_name, date_str):
         return self.recorders[section_name][date_str]
 
-class DualThrustTSG(CtaTemplate):
-    """»ùÓÚ30·ÖÖÓKÏßµÄDualThrust²ßÂÔ"""
+class DualThrustTSG(StrategyTemplate):
+    """åŸºäº30åˆ†é’ŸKçº¿çš„DualThrustç­–ç•¥"""
     className = 'DualThrustTSG'
     author = u'tusonggao'
     
-    # ²ßÂÔ²ÎÊı
+    # ç­–ç•¥å‚æ•°
     Length = 3
     
-    buyRatio = 0.65           # ¿ª¶à±ÈÀı
-    sellRatio = 0.8           # ¿ª¿Õ±ÈÀı
-    takeProfitRatio = 2.0     # Ö¹Ó¯±ÈÀı
+    buyRatio = 0.65           # å¼€å¤šæ¯”ä¾‹
+    sellRatio = 0.8           # å¼€ç©ºæ¯”ä¾‹
+    takeProfitRatio = 2.0     # æ­¢ç›ˆæ¯”ä¾‹
 
     initDays = 20
     
-    # ²ÎÊıÁĞ±í£¬±£´æÁË²ÎÊıµÄÃû³Æ
+    # å‚æ•°åˆ—è¡¨ï¼Œä¿å­˜äº†å‚æ•°çš„åç§°
     paramList = ['name',
                  'className',
                  'author',
@@ -65,7 +65,7 @@ class DualThrustTSG(CtaTemplate):
                  'sellRatio',
                  'takeProfitRatio']    
     
-    # ±äÁ¿ÁĞ±í£¬±£´æÁË±äÁ¿µÄÃû³Æ
+    # å˜é‡åˆ—è¡¨ï¼Œä¿å­˜äº†å˜é‡çš„åç§°
     varList = []  
 
     #----------------------------------------------------------------------
@@ -74,12 +74,12 @@ class DualThrustTSG(CtaTemplate):
         super(DualThrustTSG, self).__init__(ctaEngine, setting)
         
         self.className = self.__class__.__name__
-        self.buyEntryPrice = -1.0    # ¼ÇÂ¼×ö¶àµÄ¼Û¸ñÎ»
-        self.sellEntryPrice = -1.0   # ¼ÇÂ¼×ö¶àµÄ¼Û¸ñÎ»
+        self.buyEntryPrice = -1.0    # è®°å½•åšå¤šçš„ä»·æ ¼ä½
+        self.sellEntryPrice = -1.0   # è®°å½•åšå¤šçš„ä»·æ ¼ä½
         self.currentBar = None
-        self.lastBar = None          # ¼ÇÂ¼ÉÏÒ»¸ùbar
-        # self.currentPosition = 0     # µ±Ç°²ÖÎ»´óĞ¡
-        self.lots = 3                # Ã¿´Î¿ª²Ö´óĞ¡
+        self.lastBar = None          # è®°å½•ä¸Šä¸€æ ¹bar
+        # self.currentPosition = 0     # å½“å‰ä»“ä½å¤§å°
+        self.lots = 3                # æ¯æ¬¡å¼€ä»“å¤§å°
         self.actionRange = 0.0
         
         self.logging = LoggingToFile()
@@ -88,31 +88,31 @@ class DualThrustTSG(CtaTemplate):
         
     #----------------------------------------------------------------------
     def onInit(self):
-        """³õÊ¼»¯²ßÂÔ£¨±ØĞëÓÉÓÃ»§¼Ì³ĞÊµÏÖ£©"""
-        self.writeCtaLog(u'catTurtle_tsg ²ßÂÔ³õÊ¼»¯')
+        """åˆå§‹åŒ–ç­–ç•¥ï¼ˆå¿…é¡»ç”±ç”¨æˆ·ç»§æ‰¿å®ç°ï¼‰"""
+        self.writeCtaLog(u'catTurtle_tsg ç­–ç•¥åˆå§‹åŒ–')
         
-        initData = self.loadBar(self.initDays)
-        for bar in initData:
-            self.onBar(bar)
+#        initData = self.loadBar(self.initDays)
+#        for bar in initData:
+#            self.onBar(bar)
         
         self.putEvent()
         
     #----------------------------------------------------------------------
     def onStart(self):
-        """Æô¶¯²ßÂÔ£¨±ØĞëÓÉÓÃ»§¼Ì³ĞÊµÏÖ£©"""
-        self.writeCtaLog(u'DualThrustTSG ²ßÂÔÆô¶¯')
+        """å¯åŠ¨ç­–ç•¥ï¼ˆå¿…é¡»ç”±ç”¨æˆ·ç»§æ‰¿å®ç°ï¼‰"""
+        self.writeCtaLog(u'DualThrustTSG ç­–ç•¥å¯åŠ¨')
         self.putEvent()
     
     #----------------------------------------------------------------------
     def onStop(self):
-        """Í£Ö¹²ßÂÔ£¨±ØĞëÓÉÓÃ»§¼Ì³ĞÊµÏÖ£©"""
-        self.writeCtaLog(u'DualThrustTSG ²ßÂÔÍ£Ö¹')
+        """åœæ­¢ç­–ç•¥ï¼ˆå¿…é¡»ç”±ç”¨æˆ·ç»§æ‰¿å®ç°ï¼‰"""
+        self.writeCtaLog(u'DualThrustTSG ç­–ç•¥åœæ­¢')
         self.putEvent()
         
     #----------------------------------------------------------------------
     def onTick(self, tick):
-        """ÊÕµ½ĞĞÇéTICKÍÆËÍ£¨±ØĞëÓÉÓÃ»§¼Ì³ĞÊµÏÖ£©"""
-        # ¼ÆËãKÏß
+        """æ”¶åˆ°è¡Œæƒ…TICKæ¨é€ï¼ˆå¿…é¡»ç”±ç”¨æˆ·ç»§æ‰¿å®ç°ï¼‰"""
+        # è®¡ç®—Kçº¿
         tickMinute = tick.datetime.minute
         
         if tickMinute != self.barMinute:    
@@ -131,13 +131,13 @@ class DualThrustTSG(CtaTemplate):
             
             bar.date = tick.date
             bar.time = tick.time
-            bar.datetime = tick.datetime    # KÏßµÄÊ±¼äÉèÎªµÚÒ»¸öTickµÄÊ±¼ä
+            bar.datetime = tick.datetime    # Kçº¿çš„æ—¶é—´è®¾ä¸ºç¬¬ä¸€ä¸ªTickçš„æ—¶é—´
             
-            self.bar = bar                  # ÕâÖÖĞ´·¨ÎªÁË¼õÉÙÒ»²ã·ÃÎÊ£¬¼Ó¿ìËÙ¶È
-            self.barMinute = tickMinute     # ¸üĞÂµ±Ç°µÄ·ÖÖÓ
+            self.bar = bar                  # è¿™ç§å†™æ³•ä¸ºäº†å‡å°‘ä¸€å±‚è®¿é—®ï¼ŒåŠ å¿«é€Ÿåº¦
+            self.barMinute = tickMinute     # æ›´æ–°å½“å‰çš„åˆ†é’Ÿ
             
-        else:                               # ·ñÔò¼ÌĞøÀÛ¼ÓĞÂµÄKÏß
-            bar = self.bar                  # Ğ´·¨Í¬ÑùÎªÁË¼Ó¿ìËÙ¶È
+        else:                               # å¦åˆ™ç»§ç»­ç´¯åŠ æ–°çš„Kçº¿
+            bar = self.bar                  # å†™æ³•åŒæ ·ä¸ºäº†åŠ å¿«é€Ÿåº¦
             
             bar.high = max(bar.high, tick.lastPrice)
             bar.low = min(bar.low, tick.lastPrice)
@@ -204,7 +204,7 @@ class DualThrustTSG(CtaTemplate):
         
     #----------------------------------------------------------------------
     def onBar(self, bar):
-        """ÊÕµ½BarÍÆËÍ£¨±ØĞëÓÉÓÃ»§¼Ì³ĞÊµÏÖ£©"""
+        """æ”¶åˆ°Baræ¨é€ï¼ˆå¿…é¡»ç”±ç”¨æˆ·ç»§æ‰¿å®ç°ï¼‰"""
         self.lastBar = self.currentBar
         self.currentBar = bar
         
@@ -212,13 +212,9 @@ class DualThrustTSG(CtaTemplate):
         if date_str<='2010-04-22':
             return
             
-        last_date_str = self.lastBar.datetime.strftime('%Y-%m-%d')
-        next_date_str = self.getDataByOffset(bar, 1)
         if self.isEndOfDay(bar):
-            self.close_positions_end_of_day(bar)
-            
-        if date_str != last_date_str:
-            
+            self.close_positions_end_of_day(bar)            
+        elif self.isStartOfDay(bar):            
             self.update_entry_price(bar)
         self.check_open_positions(bar)
         self.check_close_positions_take_profit(bar)   
@@ -226,6 +222,7 @@ class DualThrustTSG(CtaTemplate):
         self.putEvent()
         
     
+    #----------------------------------------------------------------------
     def isEndOfDay(self, bar):
         next_bar = self.getDataByOffset(bar, 1)
         if next_bar==None:
@@ -236,49 +233,57 @@ class DualThrustTSG(CtaTemplate):
             if date_str!=next_date_str:
                 return True
             else:
-                return False
-                
+                return False              
     
+    #----------------------------------------------------------------------
     def isStartOfDay(self, bar):
-        
-        
-        
+        if self.lastBar==None:
+            print('get the first bar')
+            return True
+            
+        date_str = bar.datetime.strftime('%Y-%m-%d')
+        last_date_str = self.lastBar.datetime.strftime('%Y-%m-%d')
+        if date_str!=last_date_str:
+            return True
+        else:
+            return False
+
         
     #----------------------------------------------------------------------
     def onOrder(self, order):
-        """ÊÕµ½Î¯ÍĞ±ä»¯ÍÆËÍ£¨±ØĞëÓÉÓÃ»§¼Ì³ĞÊµÏÖ£©"""
-        # ¶ÔÓÚÎŞĞè×öÏ¸Á£¶ÈÎ¯ÍĞ¿ØÖÆµÄ²ßÂÔ£¬¿ÉÒÔºöÂÔonOrder
+        """æ”¶åˆ°å§”æ‰˜å˜åŒ–æ¨é€ï¼ˆå¿…é¡»ç”±ç”¨æˆ·ç»§æ‰¿å®ç°ï¼‰"""
+        # å¯¹äºæ— éœ€åšç»†ç²’åº¦å§”æ‰˜æ§åˆ¶çš„ç­–ç•¥ï¼Œå¯ä»¥å¿½ç•¥onOrder
         pass
     
     #----------------------------------------------------------------------
     def onTrade(self, trade):
-        """ÊÕµ½³É½»ÍÆËÍ£¨±ØĞëÓÉÓÃ»§¼Ì³ĞÊµÏÖ£©"""
-        # ¶ÔÓÚÎŞĞè×öÏ¸Á£¶ÈÎ¯ÍĞ¿ØÖÆµÄ²ßÂÔ£¬¿ÉÒÔºöÂÔonOrder
+        """æ”¶åˆ°æˆäº¤æ¨é€ï¼ˆå¿…é¡»ç”±ç”¨æˆ·ç»§æ‰¿å®ç°ï¼‰"""
+        # å¯¹äºæ— éœ€åšç»†ç²’åº¦å§”æ‰˜æ§åˆ¶çš„ç­–ç•¥ï¼Œå¯ä»¥å¿½ç•¥onOrder
         pass
     
     
 ######################################################################
-class OrderManagementDemo(CtaTemplate):
-    """»ùÓÚtick¼¶±ğÏ¸Á£¶È³·µ¥×·µ¥²âÊÔdemo"""
+class OrderManagementDemo(StrategyTemplate):
+    """åŸºäºtickçº§åˆ«ç»†ç²’åº¦æ’¤å•è¿½å•æµ‹è¯•demo"""
     
     className = 'OrderManagementDemo'
-    author = u'ÓÃPythonµÄ½»Ò×Ô±'
+    author = u'ç”¨Pythonçš„äº¤æ˜“å‘˜'
     
-    # ²ßÂÔ²ÎÊı
-    initDays = 10   # ³õÊ¼»¯Êı¾İËùÓÃµÄÌìÊı
+    # ç­–ç•¥å‚æ•°
+    initDays = 10   # åˆå§‹åŒ–æ•°æ®æ‰€ç”¨çš„å¤©æ•°
     
-    # ²ßÂÔ±äÁ¿
+    # ç­–ç•¥å˜é‡
     bar = None
     barMinute = EMPTY_STRING
     
     
-    # ²ÎÊıÁĞ±í£¬±£´æÁË²ÎÊıµÄÃû³Æ
+    # å‚æ•°åˆ—è¡¨ï¼Œä¿å­˜äº†å‚æ•°çš„åç§°
     paramList = ['name',
                  'className',
                  'author',
                  'vtSymbol']
     
-    # ±äÁ¿ÁĞ±í£¬±£´æÁË±äÁ¿µÄÃû³Æ
+    # å˜é‡åˆ—è¡¨ï¼Œä¿å­˜äº†å˜é‡çš„åç§°
     varList = ['inited',
                'trading',
                'pos']
@@ -293,8 +298,8 @@ class OrderManagementDemo(CtaTemplate):
         
     #----------------------------------------------------------------------
     def onInit(self):
-        """³õÊ¼»¯²ßÂÔ£¨±ØĞëÓÉÓÃ»§¼Ì³ĞÊµÏÖ£©"""
-        self.writeCtaLog(u'Ë«EMAÑİÊ¾²ßÂÔ³õÊ¼»¯')
+        """åˆå§‹åŒ–ç­–ç•¥ï¼ˆå¿…é¡»ç”±ç”¨æˆ·ç»§æ‰¿å®ç°ï¼‰"""
+        self.writeCtaLog(u'åŒEMAæ¼”ç¤ºç­–ç•¥åˆå§‹åŒ–')
         
         initData = self.loadBar(self.initDays)
         for bar in initData:
@@ -304,65 +309,65 @@ class OrderManagementDemo(CtaTemplate):
         
     #----------------------------------------------------------------------
     def onStart(self):
-        """Æô¶¯²ßÂÔ£¨±ØĞëÓÉÓÃ»§¼Ì³ĞÊµÏÖ£©"""
-        self.writeCtaLog(u'Ë«EMAÑİÊ¾²ßÂÔÆô¶¯')
+        """å¯åŠ¨ç­–ç•¥ï¼ˆå¿…é¡»ç”±ç”¨æˆ·ç»§æ‰¿å®ç°ï¼‰"""
+        self.writeCtaLog(u'åŒEMAæ¼”ç¤ºç­–ç•¥å¯åŠ¨')
         self.putEvent()
     
     #----------------------------------------------------------------------
     def onStop(self):
-        """Í£Ö¹²ßÂÔ£¨±ØĞëÓÉÓÃ»§¼Ì³ĞÊµÏÖ£©"""
-        self.writeCtaLog(u'Ë«EMAÑİÊ¾²ßÂÔÍ£Ö¹')
+        """åœæ­¢ç­–ç•¥ï¼ˆå¿…é¡»ç”±ç”¨æˆ·ç»§æ‰¿å®ç°ï¼‰"""
+        self.writeCtaLog(u'åŒEMAæ¼”ç¤ºç­–ç•¥åœæ­¢')
         self.putEvent()
         
     #----------------------------------------------------------------------
     def onTick(self, tick):
-        """ÊÕµ½ĞĞÇéTICKÍÆËÍ£¨±ØĞëÓÉÓÃ»§¼Ì³ĞÊµÏÖ£©"""
+        """æ”¶åˆ°è¡Œæƒ…TICKæ¨é€ï¼ˆå¿…é¡»ç”±ç”¨æˆ·ç»§æ‰¿å®ç°ï¼‰"""
 
-        # ½¨Á¢²»³É½»Âòµ¥²âÊÔµ¥        
+        # å»ºç«‹ä¸æˆäº¤ä¹°å•æµ‹è¯•å•        
         if self.lastOrder == None:
             self.buy(tick.lastprice - 10.0, 1)
 
-        # CTAÎ¯ÍĞÀàĞÍÓ³Éä
-        if (self.lastOrder != None and self.lastOrder.direction == u'¶à' and 
-              self.lastOrder.offset == u'¿ª²Ö'):
-            self.orderType = u'Âò¿ª'
+        # CTAå§”æ‰˜ç±»å‹æ˜ å°„
+        if (self.lastOrder != None and self.lastOrder.direction == u'å¤š' and 
+              self.lastOrder.offset == u'å¼€ä»“'):
+            self.orderType = u'ä¹°å¼€'
 
-        elif (self.lastOrder != None and self.lastOrder.direction == u'¶à' and 
-                  self.lastOrder.offset == u'Æ½²Ö'):
-            self.orderType = u'ÂòÆ½'
+        elif (self.lastOrder != None and self.lastOrder.direction == u'å¤š' and 
+                  self.lastOrder.offset == u'å¹³ä»“'):
+            self.orderType = u'ä¹°å¹³'
 
-        elif (self.lastOrder != None and self.lastOrder.direction == u'¿Õ' and 
-                  self.lastOrder.offset == u'¿ª²Ö'):
-            self.orderType = u'Âô¿ª'
+        elif (self.lastOrder != None and self.lastOrder.direction == u'ç©º' and 
+                  self.lastOrder.offset == u'å¼€ä»“'):
+            self.orderType = u'å–å¼€'
 
-        elif (self.lastOrder != None and self.lastOrder.direction == u'¿Õ' and 
-                 self.lastOrder.offset == u'Æ½²Ö'):
-            self.orderType = u'ÂôÆ½'
+        elif (self.lastOrder != None and self.lastOrder.direction == u'ç©º' and 
+                 self.lastOrder.offset == u'å¹³ä»“'):
+            self.orderType = u'å–å¹³'
                 
-        # ²»³É½»£¬¼´³·µ¥£¬²¢×·µ¥
-        if self.lastOrder != None and self.lastOrder.status == u'Î´³É½»':
+        # ä¸æˆäº¤ï¼Œå³æ’¤å•ï¼Œå¹¶è¿½å•
+        if self.lastOrder != None and self.lastOrder.status == u'æœªæˆäº¤':
             self.cancelOrder(self.lastOrder.vtOrderID)
             self.lastOrder = None
-        elif self.lastOrder != None and self.lastOrder.status == u'ÒÑ³·Ïú':
-        # ×·µ¥²¢ÉèÖÃÎª²»ÄÜ³É½»            
+        elif self.lastOrder != None and self.lastOrder.status == u'å·²æ’¤é”€':
+        # è¿½å•å¹¶è®¾ç½®ä¸ºä¸èƒ½æˆäº¤            
             self.sendOrder(self.orderType, self.tick.lastprice - 10, 1)
             self.lastOrder = None
             
     #----------------------------------------------------------------------
     def onBar(self, bar):
-        """ÊÕµ½BarÍÆËÍ£¨±ØĞëÓÉÓÃ»§¼Ì³ĞÊµÏÖ£©"""
+        """æ”¶åˆ°Baræ¨é€ï¼ˆå¿…é¡»ç”±ç”¨æˆ·ç»§æ‰¿å®ç°ï¼‰"""
         pass
     
     #----------------------------------------------------------------------
     def onOrder(self, order):
-        """ÊÕµ½Î¯ÍĞ±ä»¯ÍÆËÍ£¨±ØĞëÓÉÓÃ»§¼Ì³ĞÊµÏÖ£©"""
-        # ¶ÔÓÚÎŞĞè×öÏ¸Á£¶ÈÎ¯ÍĞ¿ØÖÆµÄ²ßÂÔ£¬¿ÉÒÔºöÂÔonOrder
+        """æ”¶åˆ°å§”æ‰˜å˜åŒ–æ¨é€ï¼ˆå¿…é¡»ç”±ç”¨æˆ·ç»§æ‰¿å®ç°ï¼‰"""
+        # å¯¹äºæ— éœ€åšç»†ç²’åº¦å§”æ‰˜æ§åˆ¶çš„ç­–ç•¥ï¼Œå¯ä»¥å¿½ç•¥onOrder
         self.lastOrder = order
     
     #----------------------------------------------------------------------
     def onTrade(self, trade):
-        """ÊÕµ½³É½»ÍÆËÍ£¨±ØĞëÓÉÓÃ»§¼Ì³ĞÊµÏÖ£©"""
-        # ¶ÔÓÚÎŞĞè×öÏ¸Á£¶ÈÎ¯ÍĞ¿ØÖÆµÄ²ßÂÔ£¬¿ÉÒÔºöÂÔonOrder
+        """æ”¶åˆ°æˆäº¤æ¨é€ï¼ˆå¿…é¡»ç”±ç”¨æˆ·ç»§æ‰¿å®ç°ï¼‰"""
+        # å¯¹äºæ— éœ€åšç»†ç²’åº¦å§”æ‰˜æ§åˆ¶çš„ç­–ç•¥ï¼Œå¯ä»¥å¿½ç•¥onOrder
         pass
 
 

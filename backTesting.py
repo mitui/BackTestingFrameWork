@@ -1,23 +1,17 @@
 # encoding: UTF-8
 
-'''
-本文件中包含的是CTA模块的回测引擎，回测引擎的API和CTA引擎一致，
-可以使用和实盘相同的代码进行回测。
-'''
 from __future__ import division
+from __future__ import print_function
 
+import os
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from itertools import product
 import multiprocessing
 import pymongo
 
-from ctaBase import *
-from ctaSetting import *
-
-from vtConstant import *
-from vtGateway import VtOrderData, VtTradeData
-from vtFunction import loadMongoSetting
+from constants import *
+from data import *
 
 import xlwt
 
@@ -35,13 +29,13 @@ class ExcelWriter(object):
         self.excel_file.save(self.file_name)
 
 ##########################################################################
-class VtTradeData(VtBaseData):
+class TradeData(object):
     """成交数据类"""
 
     #----------------------------------------------------------------------
     def __init__(self):
         """Constructor"""
-        super(VtTradeData, self).__init__()
+        super(TradeData, self).__init__()
         
         # 代码编号相关
         self.symbol = EMPTY_STRING              # 合约代码
@@ -63,13 +57,13 @@ class VtTradeData(VtBaseData):
    
 
 ########################################################################
-class VtOrderData(VtBaseData):
+class OrderData(object):
     """订单数据类"""
 
     #----------------------------------------------------------------------
     def __init__(self):
         """Constructor"""
-        super(VtOrderData, self).__init__()
+        super(OrderData, self).__init__()
         
         # 代码编号相关
         self.symbol = EMPTY_STRING              # 合约代码
@@ -151,6 +145,10 @@ class BacktestingEngine(object):
         self.workingLimitOrderDict = OrderedDict()  # 活动限价单字典，用于进行撮合用
         self.limitOrderCount = 0                    # 限价单编号
         
+        self.MarketOrderDict = OrderedDict()         # 限价单字典
+        self.workingMarketOrderDict = OrderedDict()  # 活动限价单字典，用于进行撮合用
+        self.MarketOrderCount = 0                    # 限价单编号
+        
         self.tradeCount = 0             # 成交编号
         self.tradeDict = OrderedDict()  # 成交字典
         
@@ -160,6 +158,24 @@ class BacktestingEngine(object):
         self.tick = None
         self.bar = None
         self.dt = None      # 最新的时间
+    
+    #---------------------------------------------------------------------
+    def loadMongoSetting(self):
+        """载入MongoDB数据库的配置"""
+        fileName = 'VT_setting.json'
+        path = os.path.abspath(os.path.dirname(__file__)) 
+        fileName = os.path.join(path, fileName)  
+        
+        try:
+            f = file(fileName)
+            setting = json.load(f)
+            host = setting['mongoHost']
+            port = setting['mongoPort']
+        except:
+            host = 'localhost'
+            port = 27017
+            
+        return host, port
         
     #----------------------------------------------------------------------
     def setStartDate(self, startDate='20100416', initDays=10):
@@ -195,7 +211,7 @@ class BacktestingEngine(object):
     #----------------------------------------------------------------------
     def loadHistoryData(self):
         """载入历史数据"""
-        host, port = loadMongoSetting()
+        host, port = self.loadMongoSetting()
         
         self.dbClient = pymongo.MongoClient(host, port)
         collection = self.dbClient[self.dbName][self.symbol]          
@@ -204,10 +220,10 @@ class BacktestingEngine(object):
       
         # 首先根据回测模式，确认要使用的数据类
         if self.mode == self.BAR_MODE:
-            dataClass = CtaBarData
+            dataClass = BarData
             func = self.newBar
         else:
-            dataClass = CtaTickData
+            dataClass = TickData
             func = self.newTick
 
         # 载入初始化需要用的数据
@@ -235,24 +251,27 @@ class BacktestingEngine(object):
         
     #----------------------------------------------------------------------
     def runBacktesting(self):
-        print 'In runBacktesting(self)'
+        print('In runBacktesting(self)')
         """运行回测"""
         # 载入历史数据
         self.loadHistoryData()
         
         # 首先根据回测模式，确认要使用的数据类
         if self.mode == self.BAR_MODE:
-            dataClass = CtaBarData
+            dataClass = BarData
             func = self.newBar
         else:
-            dataClass = CtaTickData
+            dataClass = TickData
             func = self.newTick
 
         self.output(u'开始回测')
+        print('Get here 111!!!')
         
         self.strategy.inited = True
         self.strategy.onInit()
         self.output(u'策略初始化完成')
+        
+        print('Get here 222 !!!')
         
         self.strategy.trading = True
         self.strategy.onStart()
@@ -265,26 +284,10 @@ class BacktestingEngine(object):
             data = dataClass()
             data.__dict__ = d
             data.index = i
-            data_list.append(data)
+            self.data_list.append(data)
         
         for data in self.data_list:
-                func(data)
-            else:
-                func(data)
-#            if i<len(data_list)-1:
-#                date_str = data.datetime.strftime('%Y-%m-%d')
-#                date_str111 = data.datetime.strftime('%Y-%m-%d %H:%M:%S')
-#                tomorrow_date_str = data_list[i+1].datetime.strftime('%Y-%m-%d')
-#                if date_str!=tomorrow_date_str:
-#                    print('not equal date_str the diff day ', date_str, date_str111)
-#                    self.strategy.close_positions_end_of_day(data)
-#                else:
-#                    print('equal date_str the same day', date_str, date_str111)
-
-#        for d in self.dbCursor:
-#            data = dataClass()
-#            data.__dict__ = d
-#            func(data)     
+            func(data)
             
         self.output(u'数据回放结束')
         
@@ -296,18 +299,13 @@ class BacktestingEngine(object):
         self.crossLimitOrder()      # 先撮合限价单
         self.crossStopOrder()       # 再撮合停止单
         self.strategy.onBar(bar)    # 推送K线到策略中
-        date_str = bar.datetime.strftime('%Y-%m-%d')
-        tomorrow_date_str = bar_next.datetime.strftime('%Y-%m-%d')
-        if date_str!=tomorrow_date_str:
-            self.strategy.close_positions_end_of_day(bar)
-        self.crossLimitOrder()      # 先撮合限价单
+        self.crossLimitOrder()      # 撮合当前K线上的限价单
     
     #---------------------------------------------------------------------
     def getDataByOffset(self, data, offset):
         # offset negative for the previous, offset positive for the next
-        i = data.index
         try:
-            dt = self.data_list[i+offset]
+            dt = self.data_list[data.index + offset]
         except IndexError:
             dt = None
         return dt
@@ -336,7 +334,7 @@ class BacktestingEngine(object):
         self.limitOrderCount += 1
         orderID = str(self.limitOrderCount)
         
-        order = VtOrderData()
+        order = OrderData()
         order.vtSymbol = vtSymbol
         order.price = price
         order.totalVolume = volume
@@ -364,42 +362,6 @@ class BacktestingEngine(object):
         self.limitOrderDict[orderID] = order
         
         return orderID
-    
-    #----------------------------------------------------------------------
-    def sendMarketOrder(self, vtSymbol, orderType, price, volume, strategy):
-        """发单"""
-        self.limitOrderCount += 1
-        orderID = str(self.limitOrderCount)
-        
-        order = VtOrderData()
-        order.vtSymbol = vtSymbol
-        order.price = price
-        order.totalVolume = volume
-        order.status = STATUS_NOTTRADED     # 刚提交尚未成交
-        order.orderID = orderID
-        order.vtOrderID = orderID
-        order.orderTime = str(self.dt)
-        
-        # CTA委托类型映射
-        if orderType == CTAORDER_BUY:
-            order.direction = DIRECTION_LONG
-            order.offset = OFFSET_OPEN
-        elif orderType == CTAORDER_SELL:
-            order.direction = DIRECTION_SHORT
-            order.offset = OFFSET_CLOSE
-        elif orderType == CTAORDER_SHORT:
-            order.direction = DIRECTION_SHORT
-            order.offset = OFFSET_OPEN
-        elif orderType == CTAORDER_COVER:
-            order.direction = DIRECTION_LONG
-            order.offset = OFFSET_CLOSE     
-        
-        # 保存到限价单字典中
-        self.workingMarketOrderDict[orderID] = order
-        self.MarketOrderDict[orderID] = order
-        
-        return orderID
-        
     
     #----------------------------------------------------------------------
     def cancelOrder(self, vtOrderID):
@@ -457,57 +419,6 @@ class BacktestingEngine(object):
         """基于最新数据撮合限价单"""
         # 先确定会撮合成交的价格
         if self.mode == self.BAR_MODE:
-            buyCrossPrice = self.bar.low        
-            sellCrossPrice = self.bar.high      
-            buyBestCrossPrice = self.bar.open   
-            sellBestCrossPrice = self.bar.open  # 在当前时间点前发出的卖出委托可能的最优成交价
-        else:
-            buyCrossPrice = self.tick.askPrice1
-            sellCrossPrice = self.tick.bidPrice1
-            buyBestCrossPrice = self.tick.askPrice1
-            sellBestCrossPrice = self.tick.bidPrice1
-        
-        # 遍历限价单字典中的所有限价单
-        for orderID, order in self.workingMarketOrderDict.items():
-            self.tradeCount += 1            # 成交编号自增1
-            tradeID = str(self.tradeCount)
-            trade = VtTradeData()
-            trade.vtSymbol = order.vtSymbol
-            trade.tradeID = tradeID
-            trade.vtTradeID = tradeID
-            trade.orderID = order.orderID
-            trade.vtOrderID = order.orderID
-            trade.direction = order.direction
-            trade.offset = order.offset
-            
-            # 以买入为例：
-            # 1. 假设当根K线的OHLC分别为：100, 125, 90, 110
-            # 2. 假设在上一根K线结束(也是当前K线开始)的时刻，策略发出的委托为限价105
-            # 3. 则在实际中的成交价会是100而不是105，因为委托发出时市场的最优价格是100
-            if buyCross:
-                trade.price = min(order.price, buyBestCrossPrice)
-                self.strategy.pos += order.totalVolume
-            else:
-                trade.price = max(order.price, sellBestCrossPrice)
-                self.strategy.pos -= order.totalVolume
-            
-            trade.volume = order.totalVolume
-            trade.tradeTime = str(self.dt)
-            trade.dt = self.dt
-            self.strategy.onTrade(trade)
-            
-            self.tradeDict[tradeID] = trade
-            
-            # 推送委托数据
-            order.tradedVolume = order.totalVolume
-            order.status = STATUS_ALLTRADED
-            self.strategy.onOrder(order)
-            
-    #----------------------------------------------------------------------
-    def crossLimitOrder(self):
-        """基于最新数据撮合限价单"""
-        # 先确定会撮合成交的价格
-        if self.mode == self.BAR_MODE:
             buyCrossPrice = self.bar.low        # 若买入方向限价单价格高于该价格，则会成交
             sellCrossPrice = self.bar.high      # 若卖出方向限价单价格低于该价格，则会成交
             buyBestCrossPrice = self.bar.open   # 在当前时间点前发出的买入委托可能的最优成交价
@@ -529,7 +440,7 @@ class BacktestingEngine(object):
                 # 推送成交数据
                 self.tradeCount += 1            # 成交编号自增1
                 tradeID = str(self.tradeCount)
-                trade = VtTradeData()
+                trade = TradeData()
                 trade.vtSymbol = order.vtSymbol
                 trade.tradeID = tradeID
                 trade.vtTradeID = tradeID
@@ -721,7 +632,7 @@ class BacktestingEngine(object):
     #----------------------------------------------------------------------
     def output(self, content):
         """输出内容"""
-        print str(datetime.now()) + "\t" + content 
+        print(str(datetime.now()) + "\t" + content)
     
     #----------------------------------------------------------------------
     def calculateBacktestingResult(self):
@@ -1118,11 +1029,11 @@ class OptimizationSetting(object):
             return 
         
         if end < start:
-            print u'参数起始点必须不大于终止点'
+            print(u'参数起始点必须不大于终止点')
             return
         
         if step <= 0:
-            print u'参数布进必须大于0'
+            print(u'参数布进必须大于0')
             return
         
         l = []
@@ -1186,13 +1097,11 @@ def optimize(strategyClass, setting, targetName,
         targetValue = d[targetName]
     except KeyError:
         targetValue = 0            
-    return (str(setting), targetValue)    
-
-
+    return (str(setting), targetValue)
 
 
 if __name__ == '__main__':
-    from ctaDualThrust_tsg import *    
+    from strategyDualThrust import *    
     # 创建回测引擎
     engine = BacktestingEngine()
     
